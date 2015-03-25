@@ -60,7 +60,6 @@ uint32_t BMP_file_ops::padded_row_size(uint32_t w)
 int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
 {
     int32_t bitmap_filesize, bitmap_location;
-    //int32_t bitmap_width_rgb;
     int16_t bitmap_magicnumber;
     uint32_t bitmap_dibheadersize;
     int32_t w_temp, h_temp;
@@ -68,18 +67,9 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
     uint32_t tempdata_size;
 
     uint8_t header[BMPHEADERSIZE];
-    //uint8_t* tempdata;
-
-
-    //uint32_t bitmap_data_size;
-    //FILE* source;
-    //ifstream source;
 
     cout << "opening: " << srcfilename << "\n";
-    //source = fopen(srcfilename, "r+b");
     ifstream source(srcfilename, ios::binary);
-
-    //bitmap.filename = srcfilename;
 
     // read in header info, configure bitmap structure
     source.read((char*)header, BMPHEADERSIZE);
@@ -113,8 +103,6 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
     // conversion factor 1ppm = 39.37ppi
     bitmap.vres = read_from_offset(header, BMPHEADER_VRESOFFSET, 4);
     bitmap.hres = read_from_offset(header, BMPHEADER_HRESOFFSET, 4);
-
-    // ignore palette crap for now.
 
     #ifdef DEBUG
     printf("bitmap size:        %8d total bytes\n", bitmap_filesize);

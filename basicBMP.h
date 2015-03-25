@@ -23,12 +23,11 @@
 
 #define BASICBMP_VERSION            0.1
 
+//#define DEBUG
+
 #include <iostream>
 #include <fstream>
 #include <string>
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <unistd.h>
 
 
 #define BMPHEADERSIZE               54
@@ -62,7 +61,7 @@ using namespace std;
 // 1-bit monochrome
 // 8-bit palettized
 // 24-bit RGB color (8 bits per channel)
-enum bmp_format { color1bit, color8bit, color24bit };
+// enum bmp_format { color1bit, color8bit, color24bit };
 
 // pixel channels
 typedef enum rgbchan
@@ -77,9 +76,7 @@ enum verbose { off, on, all };
 // data: the raw bitmap data, in msb->BGR<-lsb format
 // header: the header block, which is parsed for other info about
 // the file.
-// format (see above): the color depth & format of the file
-// palette: an array of values for palletized and greyscale images
-// height, width and total size (in pixels) of the image itself
+// height & width in RGB pixels
 // hres, vres = resolution of the image in pixels per meter
 struct BMP_struct {
     //string filename;
