@@ -17,6 +17,9 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Code::Blocks files
+*.gch
+
 # =========================
 # Operating System Files
 # =========================

@@ -11,7 +11,7 @@
 *
 *   J. M. De Cristofaro, March 2015
 *
-*   GPL v3 License
+*   BSD License
 *
 *   Text above must be included in all
 *   redistributions
@@ -23,11 +23,20 @@
 
 #define BASICBMP_VERSION            0.1
 
-//#define DEBUG
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
 
 #include <iostream>
 #include <fstream>
 #include <string>
+//#include <stdio.h>
+//#include <stdlib.h>
+//#include <unistd.h>
 
 
 #define BMPHEADERSIZE               54
@@ -61,10 +70,10 @@ using namespace std;
 // 1-bit monochrome
 // 8-bit palettized
 // 24-bit RGB color (8 bits per channel)
-// enum bmp_format { color1bit, color8bit, color24bit };
+enum bmp_format { color1bit, color8bit, color24bit };
 
 // pixel channels
-typedef enum rgbchan
+enum rgbchan
     { red = 2,
       green = 1,
       blue = 0
@@ -76,7 +85,9 @@ enum verbose { off, on, all };
 // data: the raw bitmap data, in msb->BGR<-lsb format
 // header: the header block, which is parsed for other info about
 // the file.
-// height & width in RGB pixels
+// format (see above): the color depth & format of the file
+// palette: an array of values for palletized and greyscale images
+// height, width and total size (in pixels) of the image itself
 // hres, vres = resolution of the image in pixels per meter
 struct BMP_struct {
     //string filename;
@@ -91,12 +102,31 @@ struct BMP_struct {
     uint16_t bpp;
 };
 
+struct font_struct {
+    // structure for bit packed monochrome raster font
+    // packing is from top to bottom in octets
+    // lsb is nearest the top, msb is nearest to the bottom
+    // array of glyph bitmaps
+    uint8_t* glyphs_data;
+    uint8_t glyph_width;
+    uint8_t glyph_height;
+    uint16_t number_of_glyphs;
+};
+
+struct rgbpixel {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+
+const rgbpixel BLACK_PIXEL = {0, 0, 0};
+
 // a class of BMP file operations
 class BMP_file_ops {
     public:
 
         // returns size of bitmap if successful, -1 if invalid bitmap or disk error
-        int32_t load(char* srcfilename, BMP_struct &bitmap);
+        int32_t load(char* srcfilename, BMP_struct &bitmap, uint8_t verbose);
 
         // returns size of file if successful, -1 if invalid bitmap or disk error
         int32_t save(char* destfilename, BMP_struct &bitmap);
@@ -115,15 +145,45 @@ class BMP_file_ops {
 // a class of bitmap data operations
 class BMP_data_ops {
     public:
+        uint32_t height(BMP_struct &bitmap);
+        uint32_t width(BMP_struct &bitmap);
         uint8_t getpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbchan color);
+        rgbpixel getpixel(BMP_struct &bitmap, uint16_t x, uint16_t);
         uint8_t putpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbchan color, uint8_t val);
+        uint8_t putpixel(BMP_struct &bitmap, uint16_t, uint16_t y, rgbpixel pixel);
         void init(BMP_struct &bitmap, uint16_t w, uint16_t h, uint16_t bpp);
         void clear(BMP_struct &bitmap);
         int8_t print(BMP_struct &bitmap);
         void fill(BMP_struct &bitmap, rgbchan color, uint8_t val);
         void invert(BMP_struct &bitmap, rgbchan color);
         void clone(BMP_struct &source, BMP_struct &target);
+        bool same_color(rgbpixel a, rgbpixel b);
+        rgbpixel add_pixel(rgbpixel a, rgbpixel b);
+
+        // pastes source on to destination
+        uint8_t overlay(BMP_struct &source, BMP_struct &destination, uint16_t x, uint8_t y);
+
+        // pastes source on to destination, but does not paste in areas where source = mask_color
+        uint8_t mask(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y, rgbpixel mask_color);
+
+        // adds source to destination. values are clipped at 0xFF
+        uint8_t add(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y);
 
 };
+
+
+//class font_file_ops {
+//    public:
+//        // returns number of characters loaded, based on dimensions of raster file and given glyph height & width
+//        // returns 0 if given glyph height and width do not match with image dimensions
+//        int32_t load(char* srcfilename, font_struct &font, uint8_t glyph_width, uint8_t glyph_height, uint8_t verbose);
+//};
+//
+//class font_data_ops {
+//    public:
+//        void init(font_struct &font, uint16_t size, uint8_t glyph_width, uint8_t glyph_height);
+//        BMP_struct getchar(font_struct &font, uint16_t index);
+//        BMP_struct strtobmp(font_struct &font, char* mystring);
+//};
 
 #endif // BASICBMP_H_INCLUDED

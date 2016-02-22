@@ -11,7 +11,7 @@
 *
 *   J. M. De Cristofaro, March 2015
 *
-*   GPL v3 License
+*   BSD License
 *
 *   Text above must be included in all redistributions
 *

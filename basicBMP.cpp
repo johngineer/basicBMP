@@ -10,7 +10,7 @@
 *
 *   J. M. De Cristofaro, March 2015
 *
-*   GPL v3 License
+*   BSD License
 *
 *   Text above must be included in all
 *   redistributions
@@ -57,9 +57,10 @@ uint32_t BMP_file_ops::padded_row_size(uint32_t w)
     else { return ((4-((w*3) % 4)) + (w*3)); }
 }
 
-int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
+int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap, uint8_t verbose = 0)
 {
     int32_t bitmap_filesize, bitmap_location;
+    //int32_t bitmap_width_rgb;
     int16_t bitmap_magicnumber;
     uint32_t bitmap_dibheadersize;
     int32_t w_temp, h_temp;
@@ -67,9 +68,21 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
     uint32_t tempdata_size;
 
     uint8_t header[BMPHEADERSIZE];
+    //uint8_t* tempdata;
 
-    cout << "opening: " << srcfilename << "\n";
+
+    //uint32_t bitmap_data_size;
+    //FILE* source;
+    //ifstream source;
+
+    if (verbose > 0)
+    {
+        printf(ANSI_COLOR_RED "\nOPENING: " ANSI_COLOR_CYAN "%s\n\n" ANSI_COLOR_RESET, srcfilename);
+    }
+    //source = fopen(srcfilename, "r+b");
     ifstream source(srcfilename, ios::binary);
+
+    //bitmap.filename = srcfilename;
 
     // read in header info, configure bitmap structure
     source.read((char*)header, BMPHEADERSIZE);
@@ -104,15 +117,18 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
     bitmap.vres = read_from_offset(header, BMPHEADER_VRESOFFSET, 4);
     bitmap.hres = read_from_offset(header, BMPHEADER_HRESOFFSET, 4);
 
-    #ifdef DEBUG
-    printf("bitmap size:        %8d total bytes\n", bitmap_filesize);
-    printf("bitmap location:    0x%04x bytes\n", bitmap_location);
-    printf("bitmap width:       %8d pixels\n", bitmap.width);
-    printf("bitmap height:      %8d pixels\n", bitmap.height);
-    printf("hor-> res.:          %8d ppi\n", (bitmap.hres / 39));
-    printf("vert. res.:         %8d ppi\n", (bitmap.vres / 39));
-    printf("color depth:        %8d bpp\n\n\n", bitmap.bpp);
-    #endif
+    // ignore palette crap for now.
+
+    if (verbose > 1) {
+        printf(ANSI_COLOR_YELLOW "bitmap size:" ANSI_COLOR_CYAN "        %8d total bytes\n", bitmap_filesize);
+        printf(ANSI_COLOR_YELLOW "bitmap location:" ANSI_COLOR_CYAN "      0x%04x bytes\n", bitmap_location);
+        printf(ANSI_COLOR_YELLOW "bitmap width:" ANSI_COLOR_CYAN "       %8d pixels\n", bitmap.width);
+        printf(ANSI_COLOR_YELLOW "bitmap height:" ANSI_COLOR_CYAN "      %8d pixels\n", bitmap.height);
+        printf(ANSI_COLOR_YELLOW "hor-> res.:" ANSI_COLOR_CYAN "         %8d ppi\n", (bitmap.hres / 39));
+        printf(ANSI_COLOR_YELLOW "vert. res.:" ANSI_COLOR_CYAN "         %8d ppi\n", (bitmap.vres / 39));
+        printf(ANSI_COLOR_YELLOW "color depth:" ANSI_COLOR_CYAN "        %8d bpp\n\n\n", bitmap.bpp);
+        printf(ANSI_COLOR_RESET);
+    }
 
 
     if ((bitmap.width % 4) == 0) { rowpad = 0; }
@@ -120,10 +136,11 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
 
     tempdata_size = (bitmap.width*3) + rowpad;
 
-    #ifdef DEBUG
-    printf("rowpad: %d\n", rowpad);
-    printf("tempdata_size: %d\n", tempdata_size);
-    #endif
+    if (verbose > 1) {
+        printf(ANSI_COLOR_YELLOW "row padding: " ANSI_COLOR_MAGENTA " %d\n", rowpad);
+        printf(ANSI_COLOR_YELLOW " array size: " ANSI_COLOR_MAGENTA " %d bytes\n", tempdata_size);
+        printf(ANSI_COLOR_RESET);
+    }
 
     bitmap.data = new uint8_t[(bitmap.height * bitmap.width * 3)];
 
@@ -140,9 +157,11 @@ int32_t BMP_file_ops::load(char* srcfilename, BMP_struct &bitmap)
         }
     }
 
+    if (verbose > 0) { printf(ANSI_COLOR_RED "\nCLOSING: " ANSI_COLOR_CYAN "%s\n\n" ANSI_COLOR_RESET, srcfilename); }
     source.close();
 
-    return (bitmap.width * bitmap.height);
+    //return (bitmap.width * bitmap.height);
+    return (bitmap_filesize);
 }
 
 int32_t BMP_file_ops::save(char* destfilename, BMP_struct &bitmap)
@@ -240,9 +259,18 @@ int32_t BMP_file_ops::save(char* destfilename, BMP_struct &bitmap)
     return 0;
 }
 
+uint32_t BMP_data_ops::height(BMP_struct &bitmap)
+{
+    return bitmap.height;
+}
+
+uint32_t BMP_data_ops::width(BMP_struct &bitmap)
+{
+    return bitmap.width;
+}
+
 uint8_t BMP_data_ops::putpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbchan color, uint8_t val)
 {
-
     if (x >= bitmap.width) { return 1; }
     else if (y >= bitmap.height) { return 1; }
     else
@@ -252,11 +280,40 @@ uint8_t BMP_data_ops::putpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbch
     }
 }
 
+uint8_t BMP_data_ops::putpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbpixel pixel)
+{
+    if (x >= bitmap.width) { return 1; }
+    else if (y >= bitmap.height) { return 1; }
+    else
+    {
+        (bitmap.data[((y * bitmap.width) + x)*3 + BLUE]) = pixel.b;
+        (bitmap.data[((y * bitmap.width) + x)*3 + GREEN]) = pixel.g;
+        (bitmap.data[((y * bitmap.width) + x)*3 + RED]) = pixel.r;
+        return 0;
+    }
+}
+
 uint8_t BMP_data_ops::getpixel(BMP_struct &bitmap, uint16_t x, uint16_t y, rgbchan color)
 {
     if (x >= bitmap.width) { return 0; }
     else if (y >= bitmap.height) { return 0; }
     else { return (bitmap.data[((y * bitmap.width) + x)*3 + color]); }
+}
+
+rgbpixel BMP_data_ops::getpixel(BMP_struct &bitmap, uint16_t x, uint16_t y)
+{
+    rgbpixel temp;
+    temp.r = 0;
+    temp.g = 0;
+    temp.b = 0;
+    if (x >= bitmap.width) { return temp; }
+    else if (y >= bitmap.height) { return temp; }
+    else {
+        temp.b = (bitmap.data[((y * bitmap.width) + x)*3 + BLUE]);
+        temp.g = (bitmap.data[((y * bitmap.width) + x)*3 + GREEN]);
+        temp.r = (bitmap.data[((y * bitmap.width) + x)*3 + RED]);
+        return temp;
+    }
 }
 
 void BMP_data_ops::init(BMP_struct &bitmap, uint16_t w, uint16_t h, uint16_t bpp)
@@ -336,4 +393,136 @@ void BMP_data_ops::clone(BMP_struct &source, BMP_struct &target)
     {
         target.data[cp] = source.data[cp];
     }
+}
+
+//        // pastes source on to destination
+//        void overlay(BMP_struct &source, BMP_struct &destination, uint16_t x, uint8_t y);
+//
+//        // pastes source on to destination, but does not paste in areas where source = mask_color
+//        void mask(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y, rgbpixel mask_color);
+//
+//        // adds source to destination. values are clipped at 0xFF
+//        void add(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y);
+
+bool BMP_data_ops::same_color(rgbpixel a, rgbpixel b)
+{
+    if ((a.r == b.r) && (a.g == b.g) && (a.b == b.b)) { return true; }
+    else { return false; }
+}
+
+rgbpixel BMP_data_ops::add_pixel(rgbpixel a, rgbpixel b)
+{
+    rgbpixel temp;
+    uint16_t temp16;
+
+    temp16 = a.r + b.r;
+    if (temp16 > 0xFF) { temp.r = 0xFF; }
+    else { temp.r = (uint8_t)temp16; }
+
+    temp16 = a.g + b.g;
+    if (temp16 > 0xFF) { temp.g = 0xFF; }
+    else { temp.g = (uint8_t)temp16; }
+
+    temp16 = a.b + b.b;
+    if (temp16 > 0xFF) { temp.b = 0xFF; }
+    else { temp.b = (uint8_t)temp16; }
+
+    return temp;
+}
+
+uint8_t BMP_data_ops::overlay(BMP_struct &source, BMP_struct &destination, uint16_t x, uint8_t y)
+{
+    uint16_t x_terminus, y_terminus;
+    rgbpixel temp;
+    uint8_t return_val = 0;
+
+    x_terminus = x + source.width;
+    y_terminus = y + source.height;
+
+    if (x_terminus > source.width)
+    {
+        x_terminus = source.width;
+        return_val = 1;
+    }
+    if (y_terminus > source.height)
+    {
+        y_terminus = source.height;
+        return_val = 1;
+    }
+
+    for (uint16_t row = y; row < y_terminus; row++)
+    {
+        for (uint16_t col = x; col < x_terminus; col++)
+        {
+            temp = getpixel(source, row - x, col - y);
+            putpixel(destination, row, col, temp);
+        }
+    }
+
+    return return_val;
+}
+
+uint8_t BMP_data_ops::mask(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y, rgbpixel mask_color)
+{
+    uint16_t x_terminus, y_terminus;
+    rgbpixel temp;
+    uint8_t return_val = 0;
+
+    x_terminus = x + source.width;
+    y_terminus = y + source.height;
+
+    if (x_terminus > source.width)
+    {
+        x_terminus = source.width;
+        return_val = 1;
+    }
+    if (y_terminus > source.height)
+    {
+        y_terminus = source.height;
+        return_val = 1;
+    }
+
+    for (uint16_t row = y; row < y_terminus; row++)
+    {
+        for (uint16_t col = x; col < x_terminus; col++)
+        {
+            temp = getpixel(source, row - x, col - y);
+            if (!same_color(temp, mask_color)) { putpixel(destination, row, col, temp); }
+        }
+    }
+
+    return return_val;
+}
+
+uint8_t BMP_data_ops::add(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y)
+{
+    uint16_t x_terminus, y_terminus;
+    rgbpixel temp1, temp2;
+    uint8_t return_val = 0;
+
+    x_terminus = x + source.width;
+    y_terminus = y + source.height;
+
+    if (x_terminus > source.width)
+    {
+        x_terminus = source.width;
+        return_val = 1;
+    }
+    if (y_terminus > source.height)
+    {
+        y_terminus = source.height;
+        return_val = 1;
+    }
+
+    for (uint16_t row = y; row < y_terminus; row++)
+    {
+        for (uint16_t col = x; col < x_terminus; col++)
+        {
+            temp1 = getpixel(source, row - x, col - y);
+            temp2 = getpixel(destination, row, col);
+            putpixel(destination, row, col, add_pixel(temp1, temp2));
+        }
+    }
+
+    return return_val;
 }
