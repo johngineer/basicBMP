@@ -102,24 +102,11 @@ struct BMP_struct {
     uint16_t bpp;
 };
 
-struct font_struct {
-    // structure for bit packed monochrome raster font
-    // packing is from top to bottom in octets
-    // lsb is nearest the top, msb is nearest to the bottom
-    // array of glyph bitmaps
-    uint8_t* glyphs_data;
-    uint8_t glyph_width;
-    uint8_t glyph_height;
-    uint16_t number_of_glyphs;
-};
-
 struct rgbpixel {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 };
-
-const rgbpixel BLACK_PIXEL = {0, 0, 0};
 
 // a class of BMP file operations
 class BMP_file_ops {
@@ -157,33 +144,7 @@ class BMP_data_ops {
         void fill(BMP_struct &bitmap, rgbchan color, uint8_t val);
         void invert(BMP_struct &bitmap, rgbchan color);
         void clone(BMP_struct &source, BMP_struct &target);
-        bool same_color(rgbpixel a, rgbpixel b);
-        rgbpixel add_pixel(rgbpixel a, rgbpixel b);
-
-        // pastes source on to destination
-        uint8_t overlay(BMP_struct &source, BMP_struct &destination, uint16_t x, uint8_t y);
-
-        // pastes source on to destination, but does not paste in areas where source = mask_color
-        uint8_t mask(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y, rgbpixel mask_color);
-
-        // adds source to destination. values are clipped at 0xFF
-        uint8_t add(BMP_struct &source, BMP_struct &destination, uint16_t x, uint16_t y);
 
 };
-
-
-//class font_file_ops {
-//    public:
-//        // returns number of characters loaded, based on dimensions of raster file and given glyph height & width
-//        // returns 0 if given glyph height and width do not match with image dimensions
-//        int32_t load(char* srcfilename, font_struct &font, uint8_t glyph_width, uint8_t glyph_height, uint8_t verbose);
-//};
-//
-//class font_data_ops {
-//    public:
-//        void init(font_struct &font, uint16_t size, uint8_t glyph_width, uint8_t glyph_height);
-//        BMP_struct getchar(font_struct &font, uint16_t index);
-//        BMP_struct strtobmp(font_struct &font, char* mystring);
-//};
 
 #endif // BASICBMP_H_INCLUDED
